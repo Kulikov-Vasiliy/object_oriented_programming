@@ -1,4 +1,5 @@
 import pytest
+
 from src.classes import Product, Category
 
 
@@ -90,6 +91,7 @@ def test_product_ended_from_category_if_name_does_not_match(products_list):
     assert product_to_remove not in category.products
 
 
+# не проходит (выдает ошибку AssertionError: 2 != 1)
 def test_product_ended_from_category(products_list):
     """Тест удаления существующего продукта из категории."""
     category = Category(name="Продукты", description="", products=products_list.copy())
