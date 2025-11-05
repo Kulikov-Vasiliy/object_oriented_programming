@@ -19,6 +19,11 @@ class Product:
         self.quantity = quantity
 
 
+    def __str__(self):
+        return f"{self.name}, {self.description}, {self.price} руб., {self.quantity} шт."
+
+
+
 class Category:
     """
     Класс собирает информацию о категории:
@@ -37,26 +42,27 @@ class Category:
     def __init__(self, name, description, products=None):
         self.name = name
         self.description = description
-        self.products = products if products is not None else []
+        self.__products = products if products is not None else []
         Category.category_count += 1
-        self.product_count = len(self.products)
+        self.product_count = len(self.__products)
 
-    def product_added(self, name, product):
+    @property
+    def products(self):
+        return [str(product) for product in self.__products]
+
+    def add_product(self, name, product=None):
         """Учет пополнения товара"""
-        if self.name == name:
-            self.products.append(product)
+        if self.name == name and product is not None:
+            self.__products.append(product)
 
-            return product
+        elif self.name != name and product is not None:
+            self.__products.append(product)
 
-        self.products.append(product)
-
-        return product
-
-    def product_ended(self, name, product):
+    # @product_ended.setter
+    def product_ended(self, name, product=not None):
         """Учет убывания товара"""
         if self.name == name and product in self.products:
-            self.products.remove(product)
+            self.__products.remove(product)
 
-            return product
-
-        return product
+        elif self.name != name and product in self.products:
+            self.__products.remove(product)
