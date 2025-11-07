@@ -1,6 +1,6 @@
 import pytest
 
-from src.classes import Product, Category
+from src.classes import Category, Product
 
 
 def test_product_init():
@@ -11,6 +11,7 @@ def test_product_init():
     assert product.description == "Коровье"
     assert product.price == 100.0
     assert product.quantity == 50
+
 
 def test_product_attributes_types():
     """Тест типов атрибутов объекта Product."""
@@ -33,7 +34,9 @@ def products_list():
 
 def test_category_init(products_list):
     """Тест корректности инициализации объекта Category."""
-    category = Category(name="Продукты", description="Продукты питания", products=products_list)
+    category = Category(
+        name="Продукты", description="Продукты питания", products=products_list
+    )
 
     assert category.name == "Продукты"
     assert category.description == "Продукты питания"
@@ -56,10 +59,12 @@ def test_category_class_attribute_count():
 def test_product_added_to_category_with_matching_name(products_list):
     """Тест добавления продукта в категорию с совпадающим именем."""
     category = Category(name="Продукты", description="", products=products_list)
-    new_product = Product(name="Сыр", description="Голландский", price=300.0, quantity=20)
+    new_product = Product(
+        name="Сыр", description="Голландский", price=300.0, quantity=20
+    )
 
     initial_product_count = len(category.products)
-    category.product_added(name="Продукты", product=new_product)
+    category.add_product(name="Продукты", product=new_product)
 
     assert len(category.products) == initial_product_count + 1
     assert new_product in category.products
@@ -69,10 +74,12 @@ def test_product_added_to_category_with_different_name(products_list):
     """Тест добавления продукта в категорию с несовпадающим именем.
     В текущей реализации продукт все равно добавляется."""
     category = Category(name="Продукты", description="", products=products_list)
-    new_product = Product(name="Сыр", description="Голландский", price=300.0, quantity=20)
+    new_product = Product(
+        name="Сыр", description="Голландский", price=300.0, quantity=20
+    )
 
     initial_product_count = len(category.products)
-    category.product_added(name="Несуществующая категория", product=new_product)
+    category.add_product(name="Несуществующая категория", product=new_product)
 
     assert len(category.products) == initial_product_count + 1
     assert new_product in category.products
@@ -107,7 +114,9 @@ def test_product_ended_from_category(products_list):
 def test_product_ended_not_in_category(products_list):
     """Тест попытки удаления продукта, которого нет в категории."""
     category = Category(name="Продукты", description="", products=products_list.copy())
-    non_existent_product = Product(name="Несуществующий", description="", price=0, quantity=0)
+    non_existent_product = Product(
+        name="Несуществующий", description="", price=0, quantity=0
+    )
 
     initial_product_count = len(category.products)
     category.product_ended(name="Продукты", product=non_existent_product)

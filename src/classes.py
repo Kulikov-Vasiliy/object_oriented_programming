@@ -6,11 +6,11 @@ class Product:
     цена
     количество
     """
+
     name: str
     description: str
     price: float
     quantity: int
-
 
     def __init__(self, name, description, price, quantity):
         self.name = name
@@ -18,7 +18,7 @@ class Product:
         self.__price = price
         self.quantity = quantity
 
-    @property
+    @property  # type: ignore[no-redef]
     def price(self):
         return self.__price
 
@@ -42,7 +42,9 @@ class Product:
                 print("Пожалуйста, введите 'yes' или 'no'")
 
     def __str__(self):
-        return f"{self.name}, {self.description}, {self.__price} руб., {self.quantity} шт."
+        return (
+            f"{self.name}, {self.description}, {self.__price} руб., {self.quantity} шт."
+        )
 
     @classmethod
     def new_product(cls, product_info, product_list=None):
@@ -64,7 +66,7 @@ class Product:
             name=product_info.get("name"),
             description=product_info.get("description"),
             price=product_info.get("price"),
-            quantity=quantity_to_add
+            quantity=quantity_to_add,
         )
         if product_list is not None:
             product_list.append(new_product)
@@ -80,9 +82,10 @@ class Category:
     количество категорий
     количество продуктов в категории
     """
+
     name: str
     description: str
-    products: []
+    products: list
     category_count: int = 0
     product_count: int = 0
 
@@ -97,7 +100,7 @@ class Category:
         # Вызываем метод new_product и передаем текущий список продуктов
         return Product.new_product(product_info, self.__products)
 
-    @property
+    @property  # type: ignore[no-redef]
     def products(self):
         return "\n".join(str(product) for product in self.__products)
 
