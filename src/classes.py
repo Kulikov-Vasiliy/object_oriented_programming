@@ -114,8 +114,8 @@ class Category:
 
     def product_ended(self, name, product):
         """Учет убывания товара"""
-        if self.name == name and product in self.products:
+        if self.name == name and product in self.__products:
             self.__products.remove(product)
 
-        elif self.name != name and product in self.products:
+        elif self.name != name and product in self.__products:
             self.__products.remove(product)
