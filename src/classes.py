@@ -43,7 +43,7 @@ class Product:
 
     def __str__(self):
         return (
-            f"{self.name}, {self.description}, {self.__price} руб., {self.quantity} шт."
+            f"{self.name} {self.__price} руб. {self.quantity} шт."
         )
 
     @classmethod
@@ -108,9 +108,11 @@ class Category:
         """Учет пополнения товара"""
         if self.name == name and product is not None:
             self.__products.append(product)
+            self.product_count += 1
 
         elif self.name != name and product is not None:
             self.__products.append(product)
+            self.product_count += 1
 
     def product_ended(self, name, product):
         """Учет убывания товара"""
