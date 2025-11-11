@@ -1,115 +1,177 @@
 import pytest
-
-from src.classes import Product, Category
-
-
-def test_product_init():
-    """Тест корректности инициализации объекта Product."""
-    product = Product(name="Молоко", description="Коровье", price=100.0, quantity=50)
-
-    assert product.name == "Молоко"
-    assert product.description == "Коровье"
-    assert product.price == 100.0
-    assert product.quantity == 50
-
-def test_product_attributes_types():
-    """Тест типов атрибутов объекта Product."""
-    product = Product(name="Хлеб", description="Ржаной", price=50.5, quantity=100)
-
-    assert isinstance(product.name, str)
-    assert isinstance(product.description, str)
-    assert isinstance(product.price, float)
-    assert isinstance(product.quantity, int)
+import sys
+from io import StringIO
+from src.classes import Category, Product
 
 
-# Фикстура для создания тестовых продуктов, чтобы не повторять код
+# Фикстура для имитации ввода пользователя
 @pytest.fixture
-def products_list():
-    return [
-        Product(name="Молоко", description="Коровье", price=100.0, quantity=50),
-        Product(name="Хлеб", description="Ржаной", price=50.5, quantity=100),
-    ]
+def mock_input(monkeypatch):
+    """Фикстура для имитации пользовательского ввода через input()"""
+    def _mock_input_factory(responses):
+        # Преобразуем список ответов в имитированный поток ввода
+        input_gen = (response + '\n' for response in responses)
+        monkeypatch.setattr('builtins.input', lambda prompt="": next(input_gen).strip())
+    return _mock_input_factory
 
 
-def test_category_init(products_list):
-    """Тест корректности инициализации объекта Category."""
-    category = Category(name="Продукты", description="Продукты питания", products=products_list)
+class TestProduct:
 
-    assert category.name == "Продукты"
-    assert category.description == "Продукты питания"
-    assert category.products == products_list
-    assert category.product_count == 2
+    def test_product_initialization(self):
+        product = Product("Apple", "Fruit", 1.5, 100)
+        assert product.name == "Apple"
+        assert product.description == "Fruit"
+        assert product.price == 1.5  # Проверяем геттер
+        assert product.quantity == 100
 
+    def test_product_str(self):
+        product = Product("Milk", "Dairy", 2.0, 50)
+        assert str(product) == "Milk 2.0 руб. 50 шт."
 
-def test_category_class_attribute_count():
-    """Тест атрибута класса category_count."""
-    # Сбрасываем счетчик перед тестом, если он был изменен другими тестами
-    Category.category_count = 0
+    def test_price_setter_accept_new_price(self, mock_input, capsys):
+        # Имитируем ввод "yes" для подтверждения
+        mock_input(["yes"])
+        product = Product("Bread", "Bakery", 1.0, 20)
 
-    Category(name="Продукты", description="", products=[])
-    assert Category.category_count == 1
+        # Устанавливаем новую цену
+        product.price = 1.2
 
-    Category(name="Электроника", description="", products=[])
-    assert Category.category_count == 2
+        # Проверяем вывод в консоль перед вводом "yes"
+        captured = capsys.readouterr()
+        assert "1.2\n" in captured.out
 
+        # Проверяем, что цена была изменена
+        assert product.price == 1.2
 
-def test_product_added_to_category_with_matching_name(products_list):
-    """Тест добавления продукта в категорию с совпадающим именем."""
-    category = Category(name="Продукты", description="", products=products_list)
-    new_product = Product(name="Сыр", description="Голландский", price=300.0, quantity=20)
+    def test_price_setter_reject_new_price(self, mock_input):
+        # Имитируем ввод "no" для отказа
+        mock_input(["no"])
+        product = Product("Cheese", "Dairy", 5.0, 10)
 
-    initial_product_count = len(category.products)
-    category.product_added(name="Продукты", product=new_product)
+        # Пытаемся установить новую цену, но она должна остаться прежней
+        product.price = 4.5
 
-    assert len(category.products) == initial_product_count + 1
-    assert new_product in category.products
+        assert product.price == 5.0  # Цена не изменилась
 
+    def test_price_setter_invalid_price(self, mock_input, capsys):
+        # Имитируем ввод "yes" для подтверждения, но цена невалидна
+        mock_input(["yes"])
+        product = Product("Eggs", "Groceries", 3.0, 30)
 
-def test_product_added_to_category_with_different_name(products_list):
-    """Тест добавления продукта в категорию с несовпадающим именем.
-    В текущей реализации продукт все равно добавляется."""
-    category = Category(name="Продукты", description="", products=products_list)
-    new_product = Product(name="Сыр", description="Голландский", price=300.0, quantity=20)
+        product.price = 0
+        captured = capsys.readouterr()
 
-    initial_product_count = len(category.products)
-    category.product_added(name="Несуществующая категория", product=new_product)
+        # Проверяем, что появилось сообщение об ошибке, и цена не изменилась
+        assert "Цена не должна быть нулевая или отрицательная\n" in captured.out
+        assert product.price == 3.0
 
-    assert len(category.products) == initial_product_count + 1
-    assert new_product in category.products
+    @pytest.fixture
+    def category_setup(self):
+        """Фикстура, предоставляющая экземпляр категории и продукт"""
+        category = Category("Electronics", "Devices")
+        product = Product("Laptop", "Portable PC", 1000.0, 10)
+        return category, product
 
+    def test_add_product_matching_name(self, category_setup):
+        """Тест на добавление продукта, когда имя категории совпадает"""
+        category, product = category_setup
 
-def test_product_ended_from_category_if_name_does_not_match(products_list):
-    """Тест удаления продукта, когда имя категории не совпадает.
-    В текущей реализации продукт все равно удаляется, если существует."""
-    category = Category(name="Продукты", description="", products=products_list.copy())
-    product_to_remove = products_list[0]
+        initial_count = category.product_count
+        initial_list_len = len(category._Category__products)
 
-    initial_product_count = len(category.products)
-    category.product_ended(name="Неверное имя", product=product_to_remove)
+        # Вызываем метод с совпадающим именем
+        category.add_product(name="Electronics", product=product)
 
-    assert len(category.products) == initial_product_count - 1
-    assert product_to_remove not in category.products
+        # Проверяем, что продукт был добавлен и счетчики обновились
+        assert len(category._Category__products) == initial_list_len + 1
+        assert category.product_count == initial_count + 1
+        assert product in category._Category__products
+        assert category._Category__products[-1] is product  # Проверяем, что это тот же объект
 
+    def test_add_product_non_matching_name(self, category_setup):
+        """Тест на добавление продукта, когда имя категории не совпадает"""
+        category, product = category_setup
 
-# не проходит (выдает ошибку AssertionError: 2 != 1)
-def test_product_ended_from_category(products_list):
-    """Тест удаления существующего продукта из категории."""
-    category = Category(name="Продукты", description="", products=products_list.copy())
-    product_to_remove = products_list[0]
+        initial_count = category.product_count
+        initial_list_len = len(category._Category__products)
 
-    initial_product_count = len(category.products)
-    category.product_ended(name="Продукты", product=product_to_remove)
+        # Вызываем метод с НЕсовпадающим именем
+        # Логика вашего кода позволяет добавлять товар, даже если имя не совпадает.
+        category.add_product(name="Food", product=product)
 
-    assert len(category.products) == initial_product_count - 1
-    assert product_to_remove not in category.products
+        # Проверяем, что продукт все равно был добавлен и счетчики обновились
+        assert len(category._Category__products) == initial_list_len + 1
+        assert category.product_count == initial_count + 1
+        assert product in category._Category__products
 
+    def test_add_product_none_product(self, category_setup):
+        """Тест на вызов метода с product=None (ничего не должно произойти)"""
+        category, _ = category_setup
 
-def test_product_ended_not_in_category(products_list):
-    """Тест попытки удаления продукта, которого нет в категории."""
-    category = Category(name="Продукты", description="", products=products_list.copy())
-    non_existent_product = Product(name="Несуществующий", description="", price=0, quantity=0)
+        initial_count = category.product_count
+        initial_list_len = len(category._Category__products)
 
-    initial_product_count = len(category.products)
-    category.product_ended(name="Продукты", product=non_existent_product)
+        # Вызываем метод без продукта
+        category.add_product(name="Electronics", product=None)
 
-    assert len(category.products) == initial_product_count
+        # Проверяем, что состояние объекта не изменилось
+        assert len(category._Category__products) == initial_list_len
+        assert category.product_count == initial_count
+
+class TestCategory:
+
+    def test_category_initialization_and_counters(self):
+        # Сбросим счетчик перед тестом, если нужно, или просто проверим инкремент
+        initial_count = Category.category_count
+        product1 = Product("Phone", "Mobile", 500.0, 10)
+        category = Category("Electronics", "Devices", products=[product1])
+
+        assert category.name == "Electronics"
+        assert category.product_count == 1
+        assert Category.category_count == initial_count + 1
+
+    def test_category_products_property(self):
+        p1 = Product("Pen", "Writing", 0.5, 200)
+        p2 = Product("Paper", "Office", 2.0, 50)
+        category = Category("Office Supplies", "Work essentials", products=[p1, p2])
+
+        expected_output = (
+            "Pen 0.5 руб. 200 шт.\n"
+            "Paper 2.0 руб. 50 шт."
+        )
+        assert category.products == expected_output
+
+    def test_category_product_list_method(self, mock_input):
+        # product_list вызывает Product.new_product, который вызывает price.setter
+        mock_input(["yes"])
+
+        category = Category("Books", "Reading materials")
+        product_info = {"name": "Python Basics", "description": "Guide", "price": 30.0, "quantity": 15}
+
+        new_prod = category.product_list(product_info)
+
+        assert new_prod.name == "Python Basics"
+        # Проверяем, что продукт был добавлен во внутренний список категории
+        assert len(category._Category__products) == 1
+        assert category._Category__products[0] is new_prod
+
+    def test_add_product_method(self):
+        category = Category("Toys", "Fun stuff")
+        new_toy = Product("Lego", "Bricks", 50.0, 10)
+
+        # Метод add_product имеет избыточные проверки name == name, но мы его тестируем как есть
+        category.add_product(name="Toys", product=new_toy)
+
+        assert len(category._Category__products) == 1
+        assert category._Category__products[0].name == "Lego"
+
+    def test_product_ended_method(self):
+        p1 = Product("T-shirt", "Clothing", 15.0, 50)
+        category = Category("Apparel", "Wearables", products=[p1])
+
+        assert len(category._Category__products) == 1
+
+        # Метод product_ended тоже имеет избыточные проверки
+        category.product_ended(name="Apparel", product=p1)
+
+        assert len(category._Category__products) == 0
