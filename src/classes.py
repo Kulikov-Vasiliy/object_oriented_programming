@@ -42,7 +42,7 @@ class Product:
                 print("Пожалуйста, введите 'yes' или 'no'")
 
     def __str__(self):  # type: ignore[no-untyped-def]
-        return f"{self.name} {self.__price} руб. {self.quantity} шт."
+        return f"{self.name} {self.__price} руб. Остаток: {self.quantity} шт."
 
     @classmethod
     def new_product(cls, product_info, product_list=None):  # type: ignore[no-untyped-def]
