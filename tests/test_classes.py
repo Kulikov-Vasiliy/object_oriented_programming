@@ -27,7 +27,7 @@ class TestProduct:
 
     def test_product_str(self):  # type: ignore[no-untyped-def]
         product = Product("Milk", "Dairy", 2.0, 50)
-        assert str(product) == "Milk 2.0 руб. 50 шт."
+        assert str(product) == "Milk 2.0 руб. Остаток: 50 шт."
 
     def test_price_setter_accept_new_price(self, mock_input, capsys):  # type: ignore[no-untyped-def]
         # Имитируем ввод "yes" для подтверждения
@@ -165,7 +165,7 @@ class TestCategory:
         p2 = Product("Paper", "Office", 2.0, 50)
         category = Category("Office Supplies", "Work essentials", products=[p1, p2])
 
-        expected_output = "Pen 0.5 руб. 200 шт.\n" "Paper 2.0 руб. 50 шт."
+        expected_output = "Pen 0.5 руб. Остаток: 200 шт.\n" "Paper 2.0 руб. Остаток: 50 шт."
         assert category.products == expected_output
 
     def test_category_product_list_method(self, mock_input):  # type: ignore[no-untyped-def]
