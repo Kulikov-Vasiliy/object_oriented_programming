@@ -72,6 +72,9 @@ class Product:
             product_list.append(new_product)
         return new_product
 
+    def __add__(self, other):
+        return (self.__price * self.quantity) + (other.__price * other.quantity)
+
 
 class Category:
     """
@@ -95,6 +98,9 @@ class Category:
         self.__products = products if products is not None else []
         Category.category_count += 1
         self.product_count = len(self.__products)
+
+    def __str__(self):
+        return f"{self.name} количество продуктов: {self.product_count} шт."
 
     def product_list(self, product_info):
         # Вызываем метод new_product и передаем текущий список продуктов
