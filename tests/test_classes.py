@@ -118,6 +118,35 @@ class TestProduct:
         assert len(category._Category__products) == initial_list_len
         assert category.product_count == initial_count
 
+    def test_product_addition(self):
+        """Тестирование сложения двух продуктов для получения общей стоимости"""
+        product1 = Product("Laptop", "Electronics", 1000.0, 2)  # Общая стоимость: 2000.0
+        product2 = Product("Mouse", "Accessory", 20.0, 5)  # Общая стоимость: 100.0
+
+        total_value = product1 + product2
+
+        # Ожидаемый результат: 2000.0 + 100.0 = 2100.0
+        assert total_value == 2100.0
+
+    def test_product_addition_zero_quantity(self):
+        """Тестирование сложения с продуктом, количество которого равно нулю"""
+        product1 = Product("Monitor", "Electronics", 300.0, 1)  # Общая стоимость: 300.0
+        product2 = Product("Cable", "Accessory", 5.0, 0)  # Общая стоимость: 0.0
+
+        total_value = product1 + product2
+
+        assert total_value == 300.0
+
+    def test_product_addition_single_item(self):
+        """Тестирование сложения продуктов, каждого по одной штуке"""
+        product1 = Product("Keyboard", "Accessory", 50.0, 1)
+        product2 = Product("Pad", "Accessory", 10.0, 1)
+
+        total_value = product1 + product2
+
+        assert total_value == 60.0
+
+
 class TestCategory:
 
     def test_category_initialization_and_counters(self):
@@ -175,3 +204,33 @@ class TestCategory:
         category.product_ended(name="Apparel", product=p1)
 
         assert len(category._Category__products) == 0
+
+    def test_category_str_empty(self):
+        """Тестирование строкового представления пустой категории"""
+        category = Category("Groceries", "Everyday items")
+
+        # Ожидаемый формат: "{self.name} количество продуктов: {self.product_count} шт."
+        expected_str = "Groceries количество продуктов: 0 шт."
+        assert str(category) == expected_str
+
+    def test_category_str_with_products(self):
+        """Тестирование строкового представления категории с несколькими продуктами"""
+        p1 = Product("Apple", "Fruit", 1.0, 10)
+        p2 = Product("Milk", "Dairy", 2.0, 5)
+
+        # При инициализации product_count будет 2
+        category = Category("Food", "Edibles", products=[p1, p2])
+
+        expected_str = "Food количество продуктов: 2 шт."
+        assert str(category) == expected_str
+
+    def test_category_str_after_adding_product(self):
+        """Тестирование обновления строкового представления после добавления продукта"""
+        category = Category("Books", "Reading materials")
+        product = Product("Novel", "Fiction", 25.0, 1)
+
+        # Используем метод add_product для изменения состояния
+        category.add_product(name="Books", product=product)
+
+        expected_str = "Books количество продуктов: 1 шт."
+        assert str(category) == expected_str
