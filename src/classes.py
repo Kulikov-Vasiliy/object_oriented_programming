@@ -12,18 +12,18 @@ class Product:
     price: float
     quantity: int
 
-    def __init__(self, name, description, price, quantity):
+    def __init__(self, name, description, price, quantity):  # type: ignore[no-untyped-def]
         self.name = name
         self.description = description
         self.__price = price
         self.quantity = quantity
 
     @property  # type: ignore[no-redef]
-    def price(self):
+    def price(self):  # type: ignore[no-untyped-def]
         return self.__price
 
     @price.setter
-    def price(self, price):
+    def price(self, price):  # type: ignore[no-untyped-def]
         print(price)
         while True:
             submit_changed_price = input("yes/no ").lower()
@@ -41,13 +41,11 @@ class Product:
             else:
                 print("Пожалуйста, введите 'yes' или 'no'")
 
-    def __str__(self):
-        return (
-            f"{self.name} {self.__price} руб. {self.quantity} шт."
-        )
+    def __str__(self):  # type: ignore[no-untyped-def]
+        return f"{self.name} {self.__price} руб. Остаток: {self.quantity} шт."
 
     @classmethod
-    def new_product(cls, product_info, product_list=None):
+    def new_product(cls, product_info, product_list=None):  # type: ignore[no-untyped-def]
         name_of_new = product_info.get("name")
         quantity_to_add = product_info.get("quantity", 0)
         new_price = product_info.get("price")
@@ -72,6 +70,9 @@ class Product:
             product_list.append(new_product)
         return new_product
 
+    def __add__(self, other):  # type: ignore[no-untyped-def]
+        return (self.__price * self.quantity) + (other.__price * other.quantity)
+
 
 class Category:
     """
@@ -89,22 +90,25 @@ class Category:
     category_count: int = 0
     product_count: int = 0
 
-    def __init__(self, name, description, products=None):
+    def __init__(self, name, description, products=None):  # type: ignore[no-untyped-def]
         self.name = name
         self.description = description
         self.__products = products if products is not None else []
         Category.category_count += 1
         self.product_count = len(self.__products)
 
-    def product_list(self, product_info):
+    def __str__(self):  # type: ignore[no-untyped-def]
+        return f"{self.name} количество продуктов: {self.product_count} шт."
+
+    def product_list(self, product_info):  # type: ignore[no-untyped-def]
         # Вызываем метод new_product и передаем текущий список продуктов
         return Product.new_product(product_info, self.__products)
 
     @property  # type: ignore[no-redef]
-    def products(self):
+    def products(self):  # type: ignore[no-untyped-def]
         return "\n".join(str(product) for product in self.__products)
 
-    def add_product(self, name, product=None):
+    def add_product(self, name, product=None):  # type: ignore[no-untyped-def]
         """Учет пополнения товара"""
         if self.name == name and product is not None:
             self.__products.append(product)
@@ -114,7 +118,7 @@ class Category:
             self.__products.append(product)
             self.product_count += 1
 
-    def product_ended(self, name, product):
+    def product_ended(self, name, product):  # type: ignore[no-untyped-def]
         """Учет убывания товара"""
         if self.name == name and product in self.__products:
             self.__products.remove(product)
