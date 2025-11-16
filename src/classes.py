@@ -99,6 +99,14 @@ class Smartphone(Product):
             return super().__add__(other)
         raise TypeError
 
+    @classmethod
+    def new_product(cls, product_info, product_list=None):  # type: ignore[no-untyped-def]
+        if isinstance(product_info, Product):
+            # return super().new_product(product_info)
+            return super().new_product(
+                product_info.name, product_info.quantity, product_info.price
+            )
+        raise TypeError
 
 class LawnGrass(Product):
     """
@@ -120,6 +128,14 @@ class LawnGrass(Product):
     def __add__(self, other) -> float:
         if isinstance(other, LawnGrass):
             return super().__add__(other)
+        raise TypeError
+
+    @classmethod
+    def new_product(cls, product_info, product_list=None):  # type: ignore[no-untyped-def]
+        if isinstance(product_info, Product):
+            return super().new_product(
+                product_info.name, product_info.quantity, product_info.price
+            )
         raise TypeError
 
 
