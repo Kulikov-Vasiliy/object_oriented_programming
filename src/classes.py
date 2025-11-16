@@ -19,11 +19,11 @@ class Product:
         self.quantity = quantity
 
     @property  # type: ignore[no-redef]
-    def price(self):  # type: ignore[no-untyped-def]
+    def price(self) -> float:
         return self.__price
 
     @price.setter
-    def price(self, price):  # type: ignore[no-untyped-def]
+    def price(self, price) -> None:
         print(price)
         while True:
             submit_changed_price = input("yes/no ").lower()
@@ -41,7 +41,7 @@ class Product:
             else:
                 print("Пожалуйста, введите 'yes' или 'no'")
 
-    def __str__(self):  # type: ignore[no-untyped-def]
+    def __str__(self) -> str:
         return f"{self.name} {self.__price} руб. Остаток: {self.quantity} шт."
 
     @classmethod
@@ -70,8 +70,57 @@ class Product:
             product_list.append(new_product)
         return new_product
 
-    def __add__(self, other):  # type: ignore[no-untyped-def]
+    def __add__(self, other) -> float:
         return (self.__price * self.quantity) + (other.__price * other.quantity)
+
+
+class Smartphone(Product):
+    """
+    Подкласс Product собирает информацию:
+    производительность
+    модель
+    объем встроенной памяти
+    цвет
+    """
+    efficiency: int
+    model: str
+    memory: int
+    color: str
+
+    def __init__(self, name, description, price, quantity, efficiency, model, memory, color):
+        super().__init__(name, description, price, quantity)
+        self.efficiency = efficiency
+        self.model = model
+        self.memory = memory
+        self.color = color
+
+    def __add__(self, other) -> float:
+        if isinstance(other, Smartphone):
+            return super().__add__(other)
+        raise TypeError
+
+
+class LawnGrass(Product):
+    """
+    Подкласс Product собирает информацию:
+    страна-производитель
+    срок прорастания
+    цвет
+    """
+    country: str
+    germination_period: str
+    color: str
+
+    def __init__(self, name, description, price, quantity, country, germination_period, color):
+        super().__init__(name, description, price, quantity)
+        self.country = country
+        self.germination_period = germination_period
+        self.color = color
+
+    def __add__(self, other) -> float:
+        if isinstance(other, LawnGrass):
+            return super().__add__(other)
+        raise TypeError
 
 
 class Category:
@@ -97,7 +146,7 @@ class Category:
         Category.category_count += 1
         self.product_count = len(self.__products)
 
-    def __str__(self):  # type: ignore[no-untyped-def]
+    def __str__(self) -> str:
         return f"{self.name} количество продуктов: {self.product_count} шт."
 
     def product_list(self, product_info):  # type: ignore[no-untyped-def]
@@ -105,10 +154,10 @@ class Category:
         return Product.new_product(product_info, self.__products)
 
     @property  # type: ignore[no-redef]
-    def products(self):  # type: ignore[no-untyped-def]
+    def products(self) -> str:
         return "\n".join(str(product) for product in self.__products)
 
-    def add_product(self, name, product=None):  # type: ignore[no-untyped-def]
+    def add_product(self, name, product=None) -> None:
         """Учет пополнения товара"""
         if self.name == name and product is not None:
             self.__products.append(product)
@@ -118,7 +167,7 @@ class Category:
             self.__products.append(product)
             self.product_count += 1
 
-    def product_ended(self, name, product):  # type: ignore[no-untyped-def]
+    def product_ended(self, name, product) -> None:
         """Учет убывания товара"""
         if self.name == name and product in self.__products:
             self.__products.remove(product)
