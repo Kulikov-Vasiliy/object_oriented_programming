@@ -99,14 +99,6 @@ class Smartphone(Product):
             return super().__add__(other)
         raise TypeError
 
-    @classmethod
-    def new_product(cls, product_info, product_list=None):  # type: ignore[no-untyped-def]
-        if isinstance(product_info, Product):
-            # return super().new_product(product_info)
-            return super().new_product(
-                product_info.name, product_info.quantity, product_info.price
-            )
-        raise TypeError
 
 class LawnGrass(Product):
     """
@@ -128,14 +120,6 @@ class LawnGrass(Product):
     def __add__(self, other) -> float:
         if isinstance(other, LawnGrass):
             return super().__add__(other)
-        raise TypeError
-
-    @classmethod
-    def new_product(cls, product_info, product_list=None):  # type: ignore[no-untyped-def]
-        if isinstance(product_info, Product):
-            return super().new_product(
-                product_info.name, product_info.quantity, product_info.price
-            )
         raise TypeError
 
 
@@ -173,15 +157,16 @@ class Category:
     def products(self) -> str:
         return "\n".join(str(product) for product in self.__products)
 
-    def add_product(self, name, product=None) -> None:
+    def add_product(self, product=None) -> None:
         """Учет пополнения товара"""
-        if self.name == name and product is not None:
-            self.__products.append(product)
-            self.product_count += 1
-
-        elif self.name != name and product is not None:
-            self.__products.append(product)
-            self.product_count += 1
+        if isinstance(product, Product) and product is not None:
+            if isinstance(product, Smartphone) or isinstance(product, LawnGrass):
+                self.__products.append(product)
+                self.product_count += 1
+            else:
+                raise TypeError
+        else:
+            raise TypeError
 
     def product_ended(self, name, product) -> None:
         """Учет убывания товара"""
