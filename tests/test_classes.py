@@ -74,6 +74,41 @@ class TestProduct(unittest.TestCase):
         self.assertEqual(self.product.price, 120.0)  # 100 < 120
 
 
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_price_setter_empty_input(self, mock_input):
+        # Тест на пустой ввод пользователя (должен повторять запрос)
+        # Имитируем пустой ввод, а затем корректный 'n' для выхода из цикла
+        mock_input.write('\nno\n')
+        mock_input.seek(0)
+        original_price = self.product.price
+        # Проверяем, что цена не меняется при отказе
+        self.product.price = 200.0
+        self.assertEqual(self.product.price, original_price)
+
+
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_price_setter_yes_loop_until_valid(self, mock_input):
+        # Тест, который имитирует ввод "yes" для невалидной цены, затем снова "yes" для валидной
+        mock_input.write('yes\nyes\n')
+        mock_input.seek(0)
+        original_price = self.product.price
+
+        # Первая установка цены (невалидная)
+        self.product.price = -50.0
+        self.assertEqual(self.product.price, original_price)  # Цена осталась прежней
+
+        # Вторая установка цены (валидная), с использованием того же патча mock_input
+        self.product.price = 150.0
+        self.assertEqual(self.product.price, 150.0)  # Цена должна обновиться
+
+
+    def test_new_product_no_list(self):
+        # Тест new_product при вызове без product_list
+        product_info = {"name": "SoloProd", "description": "SoloDesc", "price": 10.0, "quantity": 1}
+        new_prod = Product.new_product(product_info)
+        self.assertEqual(new_prod.name, "SoloProd")
+
+
 class TestCategory(unittest.TestCase):
 
     def setUp(self):
@@ -116,6 +151,44 @@ class TestCategory(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.category.add_product(product)
 
+    def test_add_product_invalid_type_product(self):
+        # Тест добавления невалидного типа (обычный Product), который должен вызывать TypeError
+        product = Product("Invalid", "Prod", 1.0, 1)
+        with self.assertRaises(TypeError):
+            self.category.add_product(product)
+
+    def test_add_product_none(self):
+        # Тест добавления None, что должно вызывать TypeError согласно вашей реализации
+        with self.assertRaises(TypeError):
+            self.category.add_product(None)
+
+    def test_category_count_increment(self):
+        # Тест, что счетчик категорий увеличивается при создании новой
+        initial_count = Category.category_count
+        new_category = Category("TempCat", "Desc")
+        self.assertEqual(Category.category_count, initial_count + 1)
+        self.assertEqual(new_category.product_count, 0)  # Проверка product_count для пустой категории
+
+    def test_product_ended_same_name(self):
+        # Тест удаления продукта из категории с тем же именем
+        # Добавим продукт специально для удаления
+        smartphone = Smartphone("Phone", "Cool", 500.0, 1, 10, "M1", 64, "Black")
+        self.category.add_product(smartphone)
+        self.assertIn(smartphone, self.category._Category__products)
+
+        # Удаляем продукт, используя правильное имя категории
+        self.category.product_ended("TestCat", smartphone)
+        self.assertNotIn(smartphone, self.category._Category__products)
+
+    def test_product_ended_different_name(self):
+        # Тест удаления продукта, даже если имя категории не совпадает
+        # Логика вашего метода позволяет удалять продукт, даже если self.name != name
+        product_to_remove = self.product1
+        self.assertIn(product_to_remove, self.category._Category__products)
+
+        self.category.product_ended("WrongName", product_to_remove)
+        self.assertNotIn(product_to_remove, self.category._Category__products)
+
 class TestSubclasses(unittest.TestCase):
 
     def setUp(self):
@@ -145,3 +218,23 @@ class TestSubclasses(unittest.TestCase):
         # Попытка сложить траву и смартфон (должно вызвать TypeError)
         with self.assertRaises(TypeError):
             self.grass1 + self.smartphone1
+
+    def test_category_count_increment(self):
+        # Тест, что счетчик категорий увеличивается при создании новой
+        initial_count = Category.category_count
+        new_category = Category("TempCat", "Desc")
+        self.assertEqual(Category.category_count, initial_count + 1)
+        self.assertEqual(new_category.product_count, 0)  # Проверка product_count для пустой категории
+
+    def test_smartphone_full_init(self):
+        # Проверка всех атрибутов смартфона
+        self.assertEqual(self.smartphone1.efficiency, 10)
+        self.assertEqual(self.smartphone1.model, "M1")
+        self.assertEqual(self.smartphone1.memory, 64)
+        self.assertEqual(self.smartphone1.color, "Black")
+
+    def test_grass_full_init(self):
+        # Проверка всех атрибутов травы
+        self.assertEqual(self.grass1.country, "USA")
+        self.assertEqual(self.grass1.germination_period, "2 weeks")
+        self.assertEqual(self.grass1.color, "Green")
