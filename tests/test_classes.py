@@ -62,17 +62,25 @@ class TestProduct(unittest.TestCase):
         new_prod = Product.new_product(product_info)
         self.assertEqual(new_prod.name, "NewProd")
 
-    def test_new_product_update_existing(self):
-        # Тест new_product для обновления существующего продукта в списке
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_new_product_update_existing_mocked_input(self, mock_input):
+        # Предоставляем имитированный ввод "yes" для запроса подтверждения смены цены
+        mock_input.write('yes\n')
+        mock_input.seek(0)  # Сбрасываем указатель чтения в начало буфера
+
         product_list = [self.product]
+        # Новая цена (120.0) выше старой (100.0) и вызовет сеттер price с запросом input
         product_info = {"name": "TestName", "price": 120.0, "quantity": 5}
+
+        # Запускаем метод, который теперь будет читать 'yes' из mock_input
         updated_prod = Product.new_product(product_info, product_list)
 
         # Проверяем, что количество обновилось
         self.assertEqual(self.product.quantity, 15)  # 10 + 5
-        # Проверяем, что цена обновилась (если новая цена выше)
+        # Проверяем, что цена обновилась (так как мы дали 'yes')
         self.assertEqual(self.product.price, 120.0)  # 100 < 120
-
+        # Также можно проверить, что returned_product это тот же объект
+        self.assertIs(updated_prod, self.product)
 
     @patch('sys.stdin', new_callable=StringIO)
     def test_price_setter_empty_input(self, mock_input):
