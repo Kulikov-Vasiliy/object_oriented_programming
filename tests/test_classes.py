@@ -1,234 +1,248 @@
-import pytest
-
-from src.classes import Category, Product
-
-
-# Фикстура для имитации ввода пользователя
-@pytest.fixture
-def mock_input(monkeypatch):  # type: ignore[no-untyped-def]
-    """Фикстура для имитации пользовательского ввода через input()"""
-
-    def _mock_input_factory(responses):  # type: ignore[no-untyped-def]
-        # Преобразуем список ответов в имитированный поток ввода
-        input_gen = (response + "\n" for response in responses)
-        monkeypatch.setattr("builtins.input", lambda prompt="": next(input_gen).strip())
-
-    return _mock_input_factory
+import unittest
+from io import StringIO
+from unittest.mock import patch
+from src.classes import Category, Product, Smartphone, LawnGrass
 
 
-class TestProduct:
+class TestProduct(unittest.TestCase):
 
-    def test_product_initialization(self):  # type: ignore[no-untyped-def]
-        product = Product("Apple", "Fruit", 1.5, 100)
-        assert product.name == "Apple"
-        assert product.description == "Fruit"
-        assert product.price == 1.5  # Проверяем геттер
-        assert product.quantity == 100
+    def setUp(self):
+        # Инициализация объекта Product для использования в тестах
+        self.product = Product("TestName", "TestDescription", 100.0, 10)
 
-    def test_product_str(self):  # type: ignore[no-untyped-def]
-        product = Product("Milk", "Dairy", 2.0, 50)
-        assert str(product) == "Milk 2.0 руб. Остаток: 50 шт."
+    def test_init(self):
+        # Проверка корректности инициализации атрибутов
+        self.assertEqual(self.product.name, "TestName")
+        self.assertEqual(self.product.description, "TestDescription")
+        self.assertEqual(self.product.price, 100.0)
+        self.assertEqual(self.product.quantity, 10)
 
-    def test_price_setter_accept_new_price(self, mock_input, capsys):  # type: ignore[no-untyped-def]
-        # Имитируем ввод "yes" для подтверждения
-        mock_input(["yes"])
-        product = Product("Bread", "Bakery", 1.0, 20)
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_price_setter_yes_valid(self, mock_input):
+        # Тест установки новой валидной цены с подтверждением 'yes'
+        mock_input.write('yes\n')
+        mock_input.seek(0)  # Сброс указателя чтения
+        self.product.price = 150.0
+        self.assertEqual(self.product.price, 150.0)
 
-        # Устанавливаем новую цену
-        product.price = 1.2
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_price_setter_yes_invalid(self, mock_input):
+        # Тест попытки установки невалидной цены с подтверждением 'yes'
+        mock_input.write('yes\n')
+        mock_input.seek(0)
+        original_price = self.product.price
+        self.product.price = -50.0
+        # Цена не должна измениться, так как новая цена невалидна
+        self.assertEqual(self.product.price, original_price)
 
-        # Проверяем вывод в консоль перед вводом "yes"
-        captured = capsys.readouterr()
-        assert "1.2\n" in captured.out
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_price_setter_no(self, mock_input):
+        # Тест отказа от установки новой цены с 'no'
+        mock_input.write('no\n')
+        mock_input.seek(0)
+        original_price = self.product.price
+        self.product.price = 200.0
+        # Цена не должна измениться
+        self.assertEqual(self.product.price, original_price)
 
-        # Проверяем, что цена была изменена
-        assert product.price == 1.2
+    def test_str(self):
+        # Тест метода __str__
+        expected_str = "TestName 100.0 руб. Остаток: 10 шт."
+        self.assertEqual(str(self.product), expected_str)
 
-    def test_price_setter_reject_new_price(self, mock_input):  # type: ignore[no-untyped-def]
-        # Имитируем ввод "no" для отказа
-        mock_input(["no"])
-        product = Product("Cheese", "Dairy", 5.0, 10)
+    def test_add(self):
+        # Тест метода __add__ для двух продуктов
+        other_product = Product("OtherTestName", "OtherDescription", 50.0, 5)
+        expected_total = (100.0 * 10) + (50.0 * 5)  # 1000 + 250
+        self.assertEqual(self.product + other_product, expected_total)
 
-        # Пытаемся установить новую цену, но она должна остаться прежней
-        product.price = 4.5
+    def test_new_product_create_new(self):
+        # Тест new_product для создания нового продукта
+        product_info = {"name": "NewProd", "description": "NewDesc", "price": 10.0, "quantity": 1}
+        new_prod = Product.new_product(product_info)
+        self.assertEqual(new_prod.name, "NewProd")
 
-        assert product.price == 5.0  # Цена не изменилась
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_new_product_update_existing_mocked_input(self, mock_input):
+        # Предоставляем имитированный ввод "yes" для запроса подтверждения смены цены
+        mock_input.write('yes\n')
+        mock_input.seek(0)  # Сбрасываем указатель чтения в начало буфера
 
-    def test_price_setter_invalid_price(self, mock_input, capsys):  # type: ignore[no-untyped-def]
-        # Имитируем ввод "yes" для подтверждения, но цена невалидна
-        mock_input(["yes"])
-        product = Product("Eggs", "Groceries", 3.0, 30)
+        product_list = [self.product]
+        # Новая цена (120.0) выше старой (100.0) и вызовет сеттер price с запросом input
+        product_info = {"name": "TestName", "price": 120.0, "quantity": 5}
 
-        product.price = 0
-        captured = capsys.readouterr()
+        # Запускаем метод, который теперь будет читать 'yes' из mock_input
+        updated_prod = Product.new_product(product_info, product_list)
 
-        # Проверяем, что появилось сообщение об ошибке, и цена не изменилась
-        assert "Цена не должна быть нулевая или отрицательная\n" in captured.out
-        assert product.price == 3.0
+        # Проверяем, что количество обновилось
+        self.assertEqual(self.product.quantity, 15)  # 10 + 5
+        # Проверяем, что цена обновилась (так как мы дали 'yes')
+        self.assertEqual(self.product.price, 120.0)  # 100 < 120
+        # Также можно проверить, что returned_product это тот же объект
+        self.assertIs(updated_prod, self.product)
 
-    @pytest.fixture
-    def category_setup(self):  # type: ignore[no-untyped-def]
-        """Фикстура, предоставляющая экземпляр категории и продукт"""
-        category = Category("Electronics", "Devices")
-        product = Product("Laptop", "Portable PC", 1000.0, 10)
-        return category, product
-
-    def test_add_product_matching_name(self, category_setup):  # type: ignore[no-untyped-def]
-        """Тест на добавление продукта, когда имя категории совпадает"""
-        category, product = category_setup
-
-        initial_count = category.product_count
-        initial_list_len = len(category._Category__products)
-
-        # Вызываем метод с совпадающим именем
-        category.add_product(name="Electronics", product=product)
-
-        # Проверяем, что продукт был добавлен и счетчики обновились
-        assert len(category._Category__products) == initial_list_len + 1
-        assert category.product_count == initial_count + 1
-        assert product in category._Category__products
-        assert category._Category__products[-1] is product  # Проверяем, что это тот же объект
-
-    def test_add_product_non_matching_name(self, category_setup):  # type: ignore[no-untyped-def]
-        """Тест на добавление продукта, когда имя категории не совпадает"""
-        category, product = category_setup
-
-        initial_count = category.product_count
-        initial_list_len = len(category._Category__products)
-
-        # Вызываем метод с НЕсовпадающим именем
-        # Логика вашего кода позволяет добавлять товар, даже если имя не совпадает.
-        category.add_product(name="Food", product=product)
-
-        # Проверяем, что продукт все равно был добавлен и счетчики обновились
-        assert len(category._Category__products) == initial_list_len + 1
-        assert category.product_count == initial_count + 1
-        assert product in category._Category__products
-
-    def test_add_product_none_product(self, category_setup):  # type: ignore[no-untyped-def]
-        """Тест на вызов метода с product=None (ничего не должно произойти)"""
-        category, _ = category_setup
-
-        initial_count = category.product_count
-        initial_list_len = len(category._Category__products)
-
-        # Вызываем метод без продукта
-        category.add_product(name="Electronics", product=None)
-
-        # Проверяем, что состояние объекта не изменилось
-        assert len(category._Category__products) == initial_list_len
-        assert category.product_count == initial_count
-
-    def test_product_addition(self):  # type: ignore[no-untyped-def]
-        """Тестирование сложения двух продуктов для получения общей стоимости"""
-        product1 = Product("Laptop", "Electronics", 1000.0, 2)  # Общая стоимость: 2000.0
-        product2 = Product("Mouse", "Accessory", 20.0, 5)  # Общая стоимость: 100.0
-
-        total_value = product1 + product2
-
-        # Ожидаемый результат: 2000.0 + 100.0 = 2100.0
-        assert total_value == 2100.0
-
-    def test_product_addition_zero_quantity(self):  # type: ignore[no-untyped-def]
-        """Тестирование сложения с продуктом, количество которого равно нулю"""
-        product1 = Product("Monitor", "Electronics", 300.0, 1)  # Общая стоимость: 300.0
-        product2 = Product("Cable", "Accessory", 5.0, 0)  # Общая стоимость: 0.0
-
-        total_value = product1 + product2
-
-        assert total_value == 300.0
-
-    def test_product_addition_single_item(self):  # type: ignore[no-untyped-def]
-        """Тестирование сложения продуктов, каждого по одной штуке"""
-        product1 = Product("Keyboard", "Accessory", 50.0, 1)
-        product2 = Product("Pad", "Accessory", 10.0, 1)
-
-        total_value = product1 + product2
-
-        assert total_value == 60.0
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_price_setter_empty_input(self, mock_input):
+        # Тест на пустой ввод пользователя (должен повторять запрос)
+        # Имитируем пустой ввод, а затем корректный 'n' для выхода из цикла
+        mock_input.write('\nno\n')
+        mock_input.seek(0)
+        original_price = self.product.price
+        # Проверяем, что цена не меняется при отказе
+        self.product.price = 200.0
+        self.assertEqual(self.product.price, original_price)
 
 
-class TestCategory:
+    @patch('sys.stdin', new_callable=StringIO)
+    def test_price_setter_yes_loop_until_valid(self, mock_input):
+        # Тест, который имитирует ввод "yes" для невалидной цены, затем снова "yes" для валидной
+        mock_input.write('yes\nyes\n')
+        mock_input.seek(0)
+        original_price = self.product.price
 
-    def test_category_initialization_and_counters(self):  # type: ignore[no-untyped-def]
-        # Сбросим счетчик перед тестом, если нужно, или просто проверим инкремент
+        # Первая установка цены (невалидная)
+        self.product.price = -50.0
+        self.assertEqual(self.product.price, original_price)  # Цена осталась прежней
+
+        # Вторая установка цены (валидная), с использованием того же патча mock_input
+        self.product.price = 150.0
+        self.assertEqual(self.product.price, 150.0)  # Цена должна обновиться
+
+
+    def test_new_product_no_list(self):
+        # Тест new_product при вызове без product_list
+        product_info = {"name": "SoloProd", "description": "SoloDesc", "price": 10.0, "quantity": 1}
+        new_prod = Product.new_product(product_info)
+        self.assertEqual(new_prod.name, "SoloProd")
+
+
+class TestCategory(unittest.TestCase):
+
+    def setUp(self):
+        # Инициализация объектов для тестов категории
+        self.product1 = Product("Prod1", "Desc1", 10.0, 1)
+        self.product2 = Product("Prod2", "Desc2", 20.0, 2)
+        self.category = Category("TestCat", "CatDesc", [self.product1, self.product2])
+        # Сбросим счетчик категорий, если нужно изолировать тесты
+        Category.category_count = 1
+
+    def test_init(self):
+        # Проверка инициализации категории
+        self.assertEqual(self.category.name, "TestCat")
+        self.assertEqual(self.category.product_count, 2)
+        self.assertEqual(Category.category_count, 1)  # Предполагая сброс в setUp
+
+    def test_str(self):
+        # Тест метода __str__
+        expected_str = "TestCat количество продуктов: 2 шт."
+        self.assertEqual(str(self.category), expected_str)
+
+    def test_products_property(self):
+        # Тест свойства products
+        expected_products_str = (
+            "Prod1 10.0 руб. Остаток: 1 шт.\n"
+            "Prod2 20.0 руб. Остаток: 2 шт."
+        )
+        self.assertEqual(self.category.products, expected_products_str)
+
+    def test_add_product_valid(self):
+        # Тест добавления валидного продукта (используем подклассы для прохождения проверки типа)
+        smartphone = Smartphone("Phone", "Cool", 500.0, 1, 10, "M1", 64, "Black")
+        self.category.add_product(smartphone)
+        self.assertEqual(self.category.product_count, 3)
+        self.assertIn(smartphone, self.category._Category__products)  # Доступ к приватному атрибуту
+
+    def test_add_product_invalid_type(self):
+        # Тест добавления невалидного типа (обычный Product)
+        product = Product("Invalid", "Prod", 1.0, 1)
+        with self.assertRaises(TypeError):
+            self.category.add_product(product)
+
+    def test_add_product_invalid_type_product(self):
+        # Тест добавления невалидного типа (обычный Product), который должен вызывать TypeError
+        product = Product("Invalid", "Prod", 1.0, 1)
+        with self.assertRaises(TypeError):
+            self.category.add_product(product)
+
+    def test_add_product_none(self):
+        # Тест добавления None, что должно вызывать TypeError согласно вашей реализации
+        with self.assertRaises(TypeError):
+            self.category.add_product(None)
+
+    def test_category_count_increment(self):
+        # Тест, что счетчик категорий увеличивается при создании новой
         initial_count = Category.category_count
-        product1 = Product("Phone", "Mobile", 500.0, 10)
-        category = Category("Electronics", "Devices", products=[product1])
+        new_category = Category("TempCat", "Desc")
+        self.assertEqual(Category.category_count, initial_count + 1)
+        self.assertEqual(new_category.product_count, 0)  # Проверка product_count для пустой категории
 
-        assert category.name == "Electronics"
-        assert category.product_count == 1
-        assert Category.category_count == initial_count + 1
+    def test_product_ended_same_name(self):
+        # Тест удаления продукта из категории с тем же именем
+        # Добавим продукт специально для удаления
+        smartphone = Smartphone("Phone", "Cool", 500.0, 1, 10, "M1", 64, "Black")
+        self.category.add_product(smartphone)
+        self.assertIn(smartphone, self.category._Category__products)
 
-    def test_category_products_property(self):  # type: ignore[no-untyped-def]
-        p1 = Product("Pen", "Writing", 0.5, 200)
-        p2 = Product("Paper", "Office", 2.0, 50)
-        category = Category("Office Supplies", "Work essentials", products=[p1, p2])
+        # Удаляем продукт, используя правильное имя категории
+        self.category.product_ended("TestCat", smartphone)
+        self.assertNotIn(smartphone, self.category._Category__products)
 
-        expected_output = "Pen 0.5 руб. Остаток: 200 шт.\n" "Paper 2.0 руб. Остаток: 50 шт."
-        assert category.products == expected_output
+    def test_product_ended_different_name(self):
+        # Тест удаления продукта, даже если имя категории не совпадает
+        # Логика вашего метода позволяет удалять продукт, даже если self.name != name
+        product_to_remove = self.product1
+        self.assertIn(product_to_remove, self.category._Category__products)
 
-    def test_category_product_list_method(self, mock_input):  # type: ignore[no-untyped-def]
-        # product_list вызывает Product.new_product, который вызывает price.setter
-        mock_input(["yes"])
+        self.category.product_ended("WrongName", product_to_remove)
+        self.assertNotIn(product_to_remove, self.category._Category__products)
 
-        category = Category("Books", "Reading materials")
-        product_info = {"name": "Python Basics", "description": "Guide", "price": 30.0, "quantity": 15}
+class TestSubclasses(unittest.TestCase):
 
-        new_prod = category.product_list(product_info)
+    def setUp(self):
+        self.smartphone1 = Smartphone("SPhone1", "Desc1", 100.0, 1, 10, "M1", 64, "Black")
+        self.smartphone2 = Smartphone("SPhone2", "Desc2", 200.0, 2, 20, "M2", 128, "White")
+        self.grass1 = LawnGrass("Grass1", "Desc3", 50.0, 3, "USA", "2 weeks", "Green")
 
-        assert new_prod.name == "Python Basics"
-        # Проверяем, что продукт был добавлен во внутренний список категории
-        assert len(category._Category__products) == 1
-        assert category._Category__products[0] is new_prod
+    def test_smartphone_init(self):
+        self.assertEqual(self.smartphone1.model, "M1")
+        self.assertEqual(self.smartphone1.price, 100.0)
 
-    def test_add_product_method(self):  # type: ignore[no-untyped-def]
-        category = Category("Toys", "Fun stuff")
-        new_toy = Product("Lego", "Bricks", 50.0, 10)
+    def test_grass_init(self):
+        self.assertEqual(self.grass1.country, "USA")
+        self.assertEqual(self.grass1.germination_period, "2 weeks")
 
-        # Метод add_product имеет избыточные проверки name == name, но мы его тестируем как есть
-        category.add_product(name="Toys", product=new_toy)
+    def test_smartphone_add_valid(self):
+        # Сложение двух смартфонов
+        expected_total = (100.0 * 1) + (200.0 * 2)  # 100 + 400 = 500
+        self.assertEqual(self.smartphone1 + self.smartphone2, expected_total)
 
-        assert len(category._Category__products) == 1
-        assert category._Category__products[0].name == "Lego"
+    def test_smartphone_add_invalid(self):
+        # Попытка сложить смартфон и траву (должно вызвать TypeError)
+        with self.assertRaises(TypeError):
+            self.smartphone1 + self.grass1
 
-    def test_product_ended_method(self):  # type: ignore[no-untyped-def]
-        p1 = Product("T-shirt", "Clothing", 15.0, 50)
-        category = Category("Apparel", "Wearables", products=[p1])
+    def test_grass_add_invalid(self):
+        # Попытка сложить траву и смартфон (должно вызвать TypeError)
+        with self.assertRaises(TypeError):
+            self.grass1 + self.smartphone1
 
-        assert len(category._Category__products) == 1
+    def test_category_count_increment(self):
+        # Тест, что счетчик категорий увеличивается при создании новой
+        initial_count = Category.category_count
+        new_category = Category("TempCat", "Desc")
+        self.assertEqual(Category.category_count, initial_count + 1)
+        self.assertEqual(new_category.product_count, 0)  # Проверка product_count для пустой категории
 
-        # Метод product_ended тоже имеет избыточные проверки
-        category.product_ended(name="Apparel", product=p1)
+    def test_smartphone_full_init(self):
+        # Проверка всех атрибутов смартфона
+        self.assertEqual(self.smartphone1.efficiency, 10)
+        self.assertEqual(self.smartphone1.model, "M1")
+        self.assertEqual(self.smartphone1.memory, 64)
+        self.assertEqual(self.smartphone1.color, "Black")
 
-        assert len(category._Category__products) == 0
-
-    def test_category_str_empty(self):  # type: ignore[no-untyped-def]
-        """Тестирование строкового представления пустой категории"""
-        category = Category("Groceries", "Everyday items")
-
-        # Ожидаемый формат: "{self.name} количество продуктов: {self.product_count} шт."
-        expected_str = "Groceries количество продуктов: 0 шт."
-        assert str(category) == expected_str
-
-    def test_category_str_with_products(self):  # type: ignore[no-untyped-def]
-        """Тестирование строкового представления категории с несколькими продуктами"""
-        p1 = Product("Apple", "Fruit", 1.0, 10)
-        p2 = Product("Milk", "Dairy", 2.0, 5)
-
-        # При инициализации product_count будет 2
-        category = Category("Food", "Edibles", products=[p1, p2])
-
-        expected_str = "Food количество продуктов: 2 шт."
-        assert str(category) == expected_str
-
-    def test_category_str_after_adding_product(self):  # type: ignore[no-untyped-def]
-        """Тестирование обновления строкового представления после добавления продукта"""
-        category = Category("Books", "Reading materials")
-        product = Product("Novel", "Fiction", 25.0, 1)
-
-        # Используем метод add_product для изменения состояния
-        category.add_product(name="Books", product=product)
-
-        expected_str = "Books количество продуктов: 1 шт."
-        assert str(category) == expected_str
+    def test_grass_full_init(self):
+        # Проверка всех атрибутов травы
+        self.assertEqual(self.grass1.country, "USA")
+        self.assertEqual(self.grass1.germination_period, "2 weeks")
+        self.assertEqual(self.grass1.color, "Green")
