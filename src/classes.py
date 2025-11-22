@@ -1,3 +1,17 @@
+from abc import ABC, abstractmethod
+
+class BaseProduct(ABC):
+    """Абстрактный класс содержит общую функциональность"""
+
+    @abstractmethod
+    def __init__(self, name, description, price, quantity):
+        pass
+
+    @abstractmethod
+    def __add__(self, other) ->float:
+        pass
+
+
 class Product:
     """
     Класс собирает информацию о продукте:
@@ -6,7 +20,6 @@ class Product:
     цена
     количество
     """
-
     name: str
     description: str
     price: float
@@ -54,7 +67,7 @@ class Product:
             for product in product_list:
                 if product.name == name_of_new:
                     product.quantity += quantity_to_add
-                if product.__price < new_price:
+                if product.price < new_price:
                     product.price = new_price
 
                     return product
@@ -132,7 +145,6 @@ class Category:
     количество категорий
     количество продуктов в категории
     """
-
     name: str
     description: str
     products: list

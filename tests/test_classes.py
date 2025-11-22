@@ -1,7 +1,7 @@
 import unittest
 from io import StringIO
 from unittest.mock import patch
-from src.classes import Category, Product, Smartphone, LawnGrass
+from src.classes import Category, Product, Smartphone, LawnGrass, BaseProduct
 
 
 class TestProduct(unittest.TestCase):
