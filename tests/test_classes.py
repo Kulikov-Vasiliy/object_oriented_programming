@@ -1,8 +1,7 @@
 import unittest
 from io import StringIO
-import sys
 from unittest.mock import patch
-from src.classes import  Product, Smartphone, LawnGrass, Category, MixinLog
+from src.classes import  Product, Smartphone, LawnGrass, Category
 
 class TestProduct(unittest.TestCase):
     def setUp(self):
