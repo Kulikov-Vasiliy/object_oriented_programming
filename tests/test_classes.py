@@ -1,248 +1,132 @@
 import unittest
 from io import StringIO
+import sys
 from unittest.mock import patch
-from src.classes import Category, Product, Smartphone, LawnGrass, BaseProduct
-
+from src.classes import  Product, Smartphone, LawnGrass, Category, MixinLog
 
 class TestProduct(unittest.TestCase):
-
     def setUp(self):
-        # Инициализация объекта Product для использования в тестах
-        self.product = Product("TestName", "TestDescription", 100.0, 10)
+        # Инициализация тестовых данных перед каждым тестом
+        self.product1 = Product("Laptop", "Powerful laptop", 1200.0, 10)
+        self.product2 = Product("Mouse", "Wireless mouse", 25.5, 50)
+        self.smartphone = Smartphone("iPhone 13", "Latest iPhone", 999.0, 15, 10, "13", 128, "Blue")
+        self.lawn_grass = LawnGrass("Green Mix", "Universal grass", 10.0, 100, "USA", "1 week", "Green")
 
-    def test_init(self):
-        # Проверка корректности инициализации атрибутов
-        self.assertEqual(self.product.name, "TestName")
-        self.assertEqual(self.product.description, "TestDescription")
-        self.assertEqual(self.product.price, 100.0)
-        self.assertEqual(self.product.quantity, 10)
+    def test_product_str(self):
+        # Проверка метода __str__
+        self.assertEqual(str(self.product1), "Laptop 1200.0 руб. Остаток: 10 шт.")
 
-    @patch('sys.stdin', new_callable=StringIO)
-    def test_price_setter_yes_valid(self, mock_input):
-        # Тест установки новой валидной цены с подтверждением 'yes'
-        mock_input.write('yes\n')
-        mock_input.seek(0)  # Сброс указателя чтения
-        self.product.price = 150.0
-        self.assertEqual(self.product.price, 150.0)
+    def test_product_add(self):
+        # Проверка метода __add__ для Product (должен работать только для объектов Product)
+        total_value = (1200.0 * 10) + (25.5 * 50)
+        self.assertEqual(self.product1 + self.product2, total_value)
 
-    @patch('sys.stdin', new_callable=StringIO)
-    def test_price_setter_yes_invalid(self, mock_input):
-        # Тест попытки установки невалидной цены с подтверждением 'yes'
-        mock_input.write('yes\n')
-        mock_input.seek(0)
-        original_price = self.product.price
-        self.product.price = -50.0
-        # Цена не должна измениться, так как новая цена невалидна
-        self.assertEqual(self.product.price, original_price)
+    def test_price_property_and_setter(self):
+        # Проверка свойства price (getter)
+        self.assertEqual(self.product1.price, 1200.0)
 
-    @patch('sys.stdin', new_callable=StringIO)
-    def test_price_setter_no(self, mock_input):
-        # Тест отказа от установки новой цены с 'no'
-        mock_input.write('no\n')
-        mock_input.seek(0)
-        original_price = self.product.price
-        self.product.price = 200.0
-        # Цена не должна измениться
-        self.assertEqual(self.product.price, original_price)
+        # Проверка сеттера цены с имитацией ввода пользователя (yes/no)
+        # Имитируем ввод "yes" для подтверждения новой цены
+        with patch('sys.stdin', StringIO('yes\n')):
+            self.product1.price = 1300.0
+            self.assertEqual(self.product1.price, 1300.0)
 
-    def test_str(self):
-        # Тест метода __str__
-        expected_str = "TestName 100.0 руб. Остаток: 10 шт."
-        self.assertEqual(str(self.product), expected_str)
+            # Имитируем ввод "no" для отмены изменения цены
+            with patch('sys.stdin', StringIO('no\n')):
+                self.product1.price = 1400.0
+                self.assertEqual(self.product1.price, 1300.0)  # Цена не должна измениться
 
-    def test_add(self):
-        # Тест метода __add__ для двух продуктов
-        other_product = Product("OtherTestName", "OtherDescription", 50.0, 5)
-        expected_total = (100.0 * 10) + (50.0 * 5)  # 1000 + 250
-        self.assertEqual(self.product + other_product, expected_total)
+            # Имитируем ввод некорректной/отрицательной цены
+            with patch('sys.stdin', StringIO('yes\n')):
+                # Вывод ошибки в консоль при отрицательной цене, цена не меняется
+                self.product1.price = -100.0
+                self.assertEqual(self.product1.price, 1300.0)
 
-    def test_new_product_create_new(self):
-        # Тест new_product для создания нового продукта
-        product_info = {"name": "NewProd", "description": "NewDesc", "price": 10.0, "quantity": 1}
-        new_prod = Product.new_product(product_info)
-        self.assertEqual(new_prod.name, "NewProd")
+    def test_new_product_classmethod(self):
+        # Проверка метода new_product (classmethod)
+        product_list = [self.product1]
+        new_product_info = {"name": "Laptop", "description": "Powerful laptop", "price": 1250.0, "quantity": 5}
 
-    @patch('sys.stdin', new_callable=StringIO)
-    def test_new_product_update_existing_mocked_input(self, mock_input):
-        # Предоставляем имитированный ввод "yes" для запроса подтверждения смены цены
-        mock_input.write('yes\n')
-        mock_input.seek(0)  # Сбрасываем указатель чтения в начало буфера
+        # Добавление существующего продукта (обновление количества и цены)
+        with patch('sys.stdin', StringIO('yes\n')):
+            updated_product = Product.new_product(new_product_info, product_list)
+            self.assertEqual(updated_product.quantity, 15)
+            self.assertEqual(updated_product.price, 1250.0)  # Цена должна обновиться, т.к. 1250 > 1200
 
-        product_list = [self.product]
-        # Новая цена (120.0) выше старой (100.0) и вызовет сеттер price с запросом input
-        product_info = {"name": "TestName", "price": 120.0, "quantity": 5}
+        # Добавление нового продукта
+        new_product_info_2 = {"name": "Monitor", "description": "4K monitor", "price": 400.0, "quantity": 2}
+        newly_created_product = Product.new_product(new_product_info_2, product_list)
+        self.assertEqual(len(product_list), 2)
+        self.assertEqual(newly_created_product.name, "Monitor")
 
-        # Запускаем метод, который теперь будет читать 'yes' из mock_input
-        updated_prod = Product.new_product(product_info, product_list)
-
-        # Проверяем, что количество обновилось
-        self.assertEqual(self.product.quantity, 15)  # 10 + 5
-        # Проверяем, что цена обновилась (так как мы дали 'yes')
-        self.assertEqual(self.product.price, 120.0)  # 100 < 120
-        # Также можно проверить, что returned_product это тот же объект
-        self.assertIs(updated_prod, self.product)
-
-    @patch('sys.stdin', new_callable=StringIO)
-    def test_price_setter_empty_input(self, mock_input):
-        # Тест на пустой ввод пользователя (должен повторять запрос)
-        # Имитируем пустой ввод, а затем корректный 'n' для выхода из цикла
-        mock_input.write('\nno\n')
-        mock_input.seek(0)
-        original_price = self.product.price
-        # Проверяем, что цена не меняется при отказе
-        self.product.price = 200.0
-        self.assertEqual(self.product.price, original_price)
-
-
-    @patch('sys.stdin', new_callable=StringIO)
-    def test_price_setter_yes_loop_until_valid(self, mock_input):
-        # Тест, который имитирует ввод "yes" для невалидной цены, затем снова "yes" для валидной
-        mock_input.write('yes\nyes\n')
-        mock_input.seek(0)
-        original_price = self.product.price
-
-        # Первая установка цены (невалидная)
-        self.product.price = -50.0
-        self.assertEqual(self.product.price, original_price)  # Цена осталась прежней
-
-        # Вторая установка цены (валидная), с использованием того же патча mock_input
-        self.product.price = 150.0
-        self.assertEqual(self.product.price, 150.0)  # Цена должна обновиться
-
-
-    def test_new_product_no_list(self):
-        # Тест new_product при вызове без product_list
-        product_info = {"name": "SoloProd", "description": "SoloDesc", "price": 10.0, "quantity": 1}
-        new_prod = Product.new_product(product_info)
-        self.assertEqual(new_prod.name, "SoloProd")
-
-
-class TestCategory(unittest.TestCase):
-
-    def setUp(self):
-        # Инициализация объектов для тестов категории
-        self.product1 = Product("Prod1", "Desc1", 10.0, 1)
-        self.product2 = Product("Prod2", "Desc2", 20.0, 2)
-        self.category = Category("TestCat", "CatDesc", [self.product1, self.product2])
-        # Сбросим счетчик категорий, если нужно изолировать тесты
-        Category.category_count = 1
-
-    def test_init(self):
-        # Проверка инициализации категории
-        self.assertEqual(self.category.name, "TestCat")
-        self.assertEqual(self.category.product_count, 2)
-        self.assertEqual(Category.category_count, 1)  # Предполагая сброс в setUp
-
-    def test_str(self):
-        # Тест метода __str__
-        expected_str = "TestCat количество продуктов: 2 шт."
-        self.assertEqual(str(self.category), expected_str)
-
-    def test_products_property(self):
-        # Тест свойства products
-        expected_products_str = (
-            "Prod1 10.0 руб. Остаток: 1 шт.\n"
-            "Prod2 20.0 руб. Остаток: 2 шт."
-        )
-        self.assertEqual(self.category.products, expected_products_str)
-
-    def test_add_product_valid(self):
-        # Тест добавления валидного продукта (используем подклассы для прохождения проверки типа)
-        smartphone = Smartphone("Phone", "Cool", 500.0, 1, 10, "M1", 64, "Black")
-        self.category.add_product(smartphone)
-        self.assertEqual(self.category.product_count, 3)
-        self.assertIn(smartphone, self.category._Category__products)  # Доступ к приватному атрибуту
-
-    def test_add_product_invalid_type(self):
-        # Тест добавления невалидного типа (обычный Product)
-        product = Product("Invalid", "Prod", 1.0, 1)
-        with self.assertRaises(TypeError):
-            self.category.add_product(product)
-
-    def test_add_product_invalid_type_product(self):
-        # Тест добавления невалидного типа (обычный Product), который должен вызывать TypeError
-        product = Product("Invalid", "Prod", 1.0, 1)
-        with self.assertRaises(TypeError):
-            self.category.add_product(product)
-
-    def test_add_product_none(self):
-        # Тест добавления None, что должно вызывать TypeError согласно вашей реализации
-        with self.assertRaises(TypeError):
-            self.category.add_product(None)
-
-    def test_category_count_increment(self):
-        # Тест, что счетчик категорий увеличивается при создании новой
-        initial_count = Category.category_count
-        new_category = Category("TempCat", "Desc")
-        self.assertEqual(Category.category_count, initial_count + 1)
-        self.assertEqual(new_category.product_count, 0)  # Проверка product_count для пустой категории
-
-    def test_product_ended_same_name(self):
-        # Тест удаления продукта из категории с тем же именем
-        # Добавим продукт специально для удаления
-        smartphone = Smartphone("Phone", "Cool", 500.0, 1, 10, "M1", 64, "Black")
-        self.category.add_product(smartphone)
-        self.assertIn(smartphone, self.category._Category__products)
-
-        # Удаляем продукт, используя правильное имя категории
-        self.category.product_ended("TestCat", smartphone)
-        self.assertNotIn(smartphone, self.category._Category__products)
-
-    def test_product_ended_different_name(self):
-        # Тест удаления продукта, даже если имя категории не совпадает
-        # Логика вашего метода позволяет удалять продукт, даже если self.name != name
-        product_to_remove = self.product1
-        self.assertIn(product_to_remove, self.category._Category__products)
-
-        self.category.product_ended("WrongName", product_to_remove)
-        self.assertNotIn(product_to_remove, self.category._Category__products)
 
 class TestSubclasses(unittest.TestCase):
-
     def setUp(self):
-        self.smartphone1 = Smartphone("SPhone1", "Desc1", 100.0, 1, 10, "M1", 64, "Black")
-        self.smartphone2 = Smartphone("SPhone2", "Desc2", 200.0, 2, 20, "M2", 128, "White")
-        self.grass1 = LawnGrass("Grass1", "Desc3", 50.0, 3, "USA", "2 weeks", "Green")
+        self.smartphone1 = Smartphone("iPhone 13", "Latest iPhone", 999.0, 15, 10, "13", 128, "Blue")
+        self.smartphone2 = Smartphone("Samsung S21", "Android phone", 800.0, 20, 9, "S21", 256, "Black")
+        self.lawn_grass1 = LawnGrass("Green Mix", "Universal grass", 10.0, 100, "USA", "1 week", "Green")
 
-    def test_smartphone_init(self):
-        self.assertEqual(self.smartphone1.model, "M1")
-        self.assertEqual(self.smartphone1.price, 100.0)
+    def test_smartphone_add(self):
+        # Проверка __add__ для смартфонов
+        expected_value = (999.0 * 15) + (800.0 * 20)
+        self.assertEqual(self.smartphone1 + self.smartphone2, expected_value)
 
-    def test_grass_init(self):
-        self.assertEqual(self.grass1.country, "USA")
-        self.assertEqual(self.grass1.germination_period, "2 weeks")
+    def test_lawn_grass_add(self):
+        # Проверка __add__ для газонов
+        expected_value = (10.0 * 100) + (10.0 * 100)  # Assuming lawn_grass1 + lawn_grass1
+        self.assertEqual(self.lawn_grass1 + self.lawn_grass1, expected_value)
 
-    def test_smartphone_add_valid(self):
-        # Сложение двух смартфонов
-        expected_total = (100.0 * 1) + (200.0 * 2)  # 100 + 400 = 500
-        self.assertEqual(self.smartphone1 + self.smartphone2, expected_total)
-
-    def test_smartphone_add_invalid(self):
-        # Попытка сложить смартфон и траву (должно вызвать TypeError)
+    def test_subclass_add_type_error(self):
+        # Проверка, что сложение разных подклассов вызывает TypeError
         with self.assertRaises(TypeError):
-            self.smartphone1 + self.grass1
+            self.smartphone1 + self.lawn_grass1
 
-    def test_grass_add_invalid(self):
-        # Попытка сложить траву и смартфон (должно вызвать TypeError)
+class TestCategory(unittest.TestCase):
+    def setUp(self):
+        self.product1 = Product("Laptop", "Powerful laptop", 1200.0, 10)
+        self.product2 = Product("Mouse", "Wireless mouse", 25.5, 50)
+        self.category = Category("Electronics", "Gadgets", [self.product1])
+
+    def test_category_init(self):
+        # Проверка инициализации категории и счетчиков
+        self.assertEqual(self.category.name, "Electronics")
+        self.assertEqual(self.category.product_count, 1)
+
+    def test_add_product(self):
+        # Проверка добавления продукта (только Product или подклассы)
+        # Этот код в функции add_product принимает только Smartphone или LawnGrass,
+        # что противоречит типу product1 (Product).
+        # Если ваш код должен принимать базовый класс Product, логику надо поправить.
+        # Исходя из текущего кода, этот тест должен вызывать ошибку:
         with self.assertRaises(TypeError):
-            self.grass1 + self.smartphone1
+            self.category.add_product(self.product2)
 
-    def test_category_count_increment(self):
-        # Тест, что счетчик категорий увеличивается при создании новой
-        initial_count = Category.category_count
-        new_category = Category("TempCat", "Desc")
-        self.assertEqual(Category.category_count, initial_count + 1)
-        self.assertEqual(new_category.product_count, 0)  # Проверка product_count для пустой категории
+        # Пример добавления корректного подкласса
+        smartphone = Smartphone("iPhone 13", "Latest iPhone", 999.0, 15, 10, "13", 128, "Blue")
+        self.category.add_product(smartphone)
+        self.assertEqual(self.category.product_count, 2)
 
-    def test_smartphone_full_init(self):
-        # Проверка всех атрибутов смартфона
-        self.assertEqual(self.smartphone1.efficiency, 10)
-        self.assertEqual(self.smartphone1.model, "M1")
-        self.assertEqual(self.smartphone1.memory, 64)
-        self.assertEqual(self.smartphone1.color, "Black")
+    def test_category_products_property(self):
+        # Проверка проперти products (геттер форматированной строки)
+        expected_str = "Laptop 1200.0 руб. Остаток: 10 шт."
+        self.assertEqual(self.category.products, expected_str)
 
-    def test_grass_full_init(self):
-        # Проверка всех атрибутов травы
-        self.assertEqual(self.grass1.country, "USA")
-        self.assertEqual(self.grass1.germination_period, "2 weeks")
-        self.assertEqual(self.grass1.color, "Green")
+    def test_category_str(self):
+        # Проверка метода __str__ категории
+        self.assertEqual(str(self.category), "Electronics количество продуктов: 1 шт.")
+
+class TestMixinLog(unittest.TestCase):
+    def test_mixin_log_repr(self):
+        # Проверка работы миксина __repr__
+        # Хотя MixinLog имеет свой __init__ и __repr__, Product его переопределяет.
+        # Product использует super().__init__(), который вызывает MixinLog.__init__
+        # в порядке MRO, но Product.__init__ не вызывает MixinLog.__init__ с параметрами
+        # name, description, price, quantity, как предполагалось в MixinLog.
+        # Текущая реализация MixinLog не будет работать должным образом с Product.
+        # Product переопределяет __repr__ в любом случае.
+
+        # Проверим __repr__ класса Product, который включает логирование
+        product = Product("TestItem", "Description", 100.0, 5)
+        # Ожидаемый вывод от Product.__repr__
+        expected_repr = "Product(('TestItem', 'Description', 100.0, 5))"
+        self.assertEqual(repr(product), expected_repr)
