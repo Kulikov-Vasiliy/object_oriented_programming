@@ -4,7 +4,7 @@ class BaseProduct(ABC):
     """Абстрактный класс содержит общую функциональность"""
 
     @abstractmethod
-    def __init__(self, name, description, price, quantity):
+    def __init__(self):
         pass
 
     @abstractmethod
@@ -12,7 +12,27 @@ class BaseProduct(ABC):
         pass
 
 
-class Product:
+class MixinLog:
+    """
+    Класс-миксин, который будет при создании объекта,
+    то есть при работе метода __init__, печатать в консоль
+    информацию о том, от какого класса и с какими параметрами
+    был создан объект
+    """
+    class_name: str
+    name: str
+    description: str
+    price: float
+    quantity: int
+
+    def __init__(self, name, description, price, quantity):  # type: ignore[no-untyped-def]
+        self.params = name, description, price, quantity
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.params})'
+
+
+class Product(BaseProduct, MixinLog):
     """
     Класс собирает информацию о продукте:
     имя
@@ -30,6 +50,7 @@ class Product:
         self.description = description
         self.__price = price
         self.quantity = quantity
+        super().__init__()
 
     @property  # type: ignore[no-redef]
     def price(self) -> float:
@@ -86,6 +107,9 @@ class Product:
     def __add__(self, other) -> float:
         return (self.__price * self.quantity) + (other.__price * other.quantity)
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.name, self.description, self.price, self.quantity})"
+
 
 class Smartphone(Product):
     """
@@ -112,6 +136,9 @@ class Smartphone(Product):
             return super().__add__(other)
         raise TypeError
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.name, self.description, self.price, self.quantity, self.efficiency, self.model, self.memory, self.color})"
+
 
 class LawnGrass(Product):
     """
@@ -134,6 +161,9 @@ class LawnGrass(Product):
         if type(self) == type(other):
             return super().__add__(other)
         raise TypeError
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.name, self.description, self.price, self.quantity, self.country, self.germination_period, self.color})"
 
 
 class Category:
