@@ -1,7 +1,9 @@
 import unittest
 from io import StringIO
 from unittest.mock import patch
-from src.classes import  Product, Smartphone, LawnGrass, Category
+
+from src.classes import Category, LawnGrass, Product, Smartphone
+
 
 class TestProduct(unittest.TestCase):
     def setUp(self):
@@ -26,17 +28,17 @@ class TestProduct(unittest.TestCase):
 
         # Проверка сеттера цены с имитацией ввода пользователя (yes/no)
         # Имитируем ввод "yes" для подтверждения новой цены
-        with patch('sys.stdin', StringIO('yes\n')):
+        with patch("sys.stdin", StringIO("yes\n")):
             self.product1.price = 1300.0
             self.assertEqual(self.product1.price, 1300.0)
 
             # Имитируем ввод "no" для отмены изменения цены
-            with patch('sys.stdin', StringIO('no\n')):
+            with patch("sys.stdin", StringIO("no\n")):
                 self.product1.price = 1400.0
                 self.assertEqual(self.product1.price, 1300.0)  # Цена не должна измениться
 
             # Имитируем ввод некорректной/отрицательной цены
-            with patch('sys.stdin', StringIO('yes\n')):
+            with patch("sys.stdin", StringIO("yes\n")):
                 # Вывод ошибки в консоль при отрицательной цене, цена не меняется
                 self.product1.price = -100.0
                 self.assertEqual(self.product1.price, 1300.0)
@@ -47,7 +49,7 @@ class TestProduct(unittest.TestCase):
         new_product_info = {"name": "Laptop", "description": "Powerful laptop", "price": 1250.0, "quantity": 5}
 
         # Добавление существующего продукта (обновление количества и цены)
-        with patch('sys.stdin', StringIO('yes\n')):
+        with patch("sys.stdin", StringIO("yes\n")):
             updated_product = Product.new_product(new_product_info, product_list)
             self.assertEqual(updated_product.quantity, 15)
             self.assertEqual(updated_product.price, 1250.0)  # Цена должна обновиться, т.к. 1250 > 1200
@@ -79,6 +81,7 @@ class TestSubclasses(unittest.TestCase):
         # Проверка, что сложение разных подклассов вызывает TypeError
         with self.assertRaises(TypeError):
             self.smartphone1 + self.lawn_grass1
+
 
 class TestCategory(unittest.TestCase):
     def setUp(self):
@@ -113,6 +116,7 @@ class TestCategory(unittest.TestCase):
     def test_category_str(self):
         # Проверка метода __str__ категории
         self.assertEqual(str(self.category), "Electronics количество продуктов: 1 шт.")
+
 
 class TestMixinLog(unittest.TestCase):
     def test_mixin_log_repr(self):

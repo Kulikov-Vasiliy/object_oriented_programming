@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
 
+
 class BaseProduct(ABC):
     """Абстрактный класс содержит общую функциональность"""
 
-    @abstractmethod
-    def __init__(self):
+    @abstractmethod  # type: ignore[no-untyped-def]
+    def __init__(self):  # type: ignore[no-untyped-def]
         pass
 
-    @abstractmethod
-    def __add__(self, other) ->float:
+    @abstractmethod  # type: ignore[no-untyped-def]
+    def __add__(self, other):  # type: ignore[no-untyped-def]
         pass
 
 
@@ -19,6 +20,7 @@ class MixinLog:
     информацию о том, от какого класса и с какими параметрами
     был создан объект
     """
+
     class_name: str
     name: str
     description: str
@@ -29,7 +31,7 @@ class MixinLog:
         self.params = name, description, price, quantity
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.params})'
+        return f"{self.__class__.__name__}({self.params})"
 
 
 class Product(BaseProduct, MixinLog):
@@ -40,6 +42,7 @@ class Product(BaseProduct, MixinLog):
     цена
     количество
     """
+
     name: str
     description: str
     price: float
@@ -54,10 +57,10 @@ class Product(BaseProduct, MixinLog):
 
     @property  # type: ignore[no-redef]
     def price(self) -> float:
-        return self.__price
+        return self.__price  # type: ignore[no-any-return]
 
-    @price.setter
-    def price(self, price) -> None:
+    @price.setter  # type: ignore[no-redef]
+    def price(self, price: float) -> None:
         print(price)
         while True:
             submit_changed_price = input("yes/no ").lower()
@@ -104,11 +107,11 @@ class Product(BaseProduct, MixinLog):
             product_list.append(new_product)
         return new_product
 
-    def __add__(self, other) -> float:
-        return (self.__price * self.quantity) + (other.__price * other.quantity)
+    def __add__(self, other) -> float:  # type: ignore[no-untyped-def]
+        return self.__price * self.quantity + other.__price * other.quantity  # type: ignore[no-any-return]
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.name, self.description, self.price, self.quantity})"
+        return f"{self.__class__.__name__}" f"({self.name, self.description, self.price, self.quantity})"
 
 
 class Smartphone(Product):
@@ -119,25 +122,40 @@ class Smartphone(Product):
     объем встроенной памяти
     цвет
     """
+
     efficiency: int
     model: str
     memory: int
     color: str
 
-    def __init__(self, name, description, price, quantity, efficiency, model, memory, color):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        price: float,
+        quantity: int,
+        efficiency: int,
+        model: str,
+        memory: int,
+        color: str,
+    ):
         super().__init__(name, description, price, quantity)
         self.efficiency = efficiency
         self.model = model
         self.memory = memory
         self.color = color
 
-    def __add__(self, other) -> float:
-        if type(self) == type(other):
+    def __add__(self, other) -> float:  # type: ignore[no-untyped-def]
+        if type(self) is type(other):
             return super().__add__(other)
         raise TypeError
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.name, self.description, self.price, self.quantity, self.efficiency, self.model, self.memory, self.color})"
+        return (
+            f"{self.__class__.__name__}({self.name}, {self.description}, "
+            f"{self.price}, {self.quantity}, {self.efficiency}, {self.model}, "
+            f"{self.memory}, {self.color})"
+        )
 
 
 class LawnGrass(Product):
@@ -147,23 +165,37 @@ class LawnGrass(Product):
     срок прорастания
     цвет
     """
+
     country: str
     germination_period: str
     color: str
 
-    def __init__(self, name, description, price, quantity, country, germination_period, color):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        price: float,
+        quantity: int,
+        country: str,
+        germination_period: str,
+        color: str,
+    ):
         super().__init__(name, description, price, quantity)
         self.country = country
         self.germination_period = germination_period
         self.color = color
 
-    def __add__(self, other) -> float:
-        if type(self) == type(other):
+    def __add__(self, other) -> float:  # type: ignore[no-untyped-def]
+        if type(self) is type(other):
             return super().__add__(other)
         raise TypeError
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.name, self.description, self.price, self.quantity, self.country, self.germination_period, self.color})"
+        return (
+            f"{self.__class__.__name__}({self.name}, {self.description}, "
+            f"{self.price}, {self.quantity}, {self.country}, "
+            f"{self.germination_period}, {self.color})"
+        )
 
 
 class Category:
@@ -175,6 +207,7 @@ class Category:
     количество категорий
     количество продуктов в категории
     """
+
     name: str
     description: str
     products: list
@@ -199,7 +232,7 @@ class Category:
     def products(self) -> str:
         return "\n".join(str(product) for product in self.__products)
 
-    def add_product(self, product=None) -> None:
+    def add_product(self, product=None) -> None:  # type: ignore[no-untyped-def]
         """Учет пополнения товара"""
         if isinstance(product, Product) and product is not None:
             if isinstance(product, Smartphone) or isinstance(product, LawnGrass):
@@ -210,7 +243,7 @@ class Category:
         else:
             raise TypeError
 
-    def product_ended(self, name, product) -> None:
+    def product_ended(self, name, product) -> None:  # type: ignore[no-untyped-def]
         """Учет убывания товара"""
         if self.name == name and product in self.__products:
             self.__products.remove(product)
