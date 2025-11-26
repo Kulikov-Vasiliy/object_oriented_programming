@@ -49,9 +49,17 @@ class Product(BaseProduct, MixinLog):
     quantity: int
 
     def __init__(self, name, description, price, quantity):  # type: ignore[no-untyped-def]
+        if not name:
+            raise ValueError("Наименование товара не указано")
         self.name = name
+        if not description:
+            raise ValueError("Описание отсутствует")
         self.description = description
+        if not price and price <= 0:
+            raise ValueError("Цена должна быть больше нуля или не указана")
         self.__price = price
+        if not quantity and quantity <= 0:
+            raise (ValueError("Товар с нулевым количеством не может быть добавлен"))
         self.quantity = quantity
         super().__init__()
 
