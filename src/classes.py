@@ -49,9 +49,19 @@ class Product(BaseProduct, MixinLog):
     quantity: int
 
     def __init__(self, name, description, price, quantity):  # type: ignore[no-untyped-def]
+        if not name:
+            raise ValueError("Наименование товара не указано")
         self.name = name
+        if not description:
+            raise ValueError("Описание отсутствует")
         self.description = description
+        if price is None:
+            raise ValueError("Цена не указана")
+        elif price <= 0:
+            raise ValueError("Цена должна быть больше нуля")
         self.__price = price
+        if quantity is None or quantity <= 0:
+            raise (ValueError("Товар с нулевым количеством не может быть добавлен"))
         self.quantity = quantity
         super().__init__()
 
@@ -108,7 +118,8 @@ class Product(BaseProduct, MixinLog):
         return new_product
 
     def __add__(self, other) -> float:  # type: ignore[no-untyped-def]
-        return self.__price * self.quantity + other.__price * other.quantity  # type: ignore[no-any-return]
+        total_price = self.__price * self.quantity + other.__price * other.quantity
+        return total_price  # type: ignore[no-any-return]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}" f"({self.name, self.description, self.price, self.quantity})"
@@ -146,7 +157,7 @@ class Smartphone(Product):
         self.color = color
 
     def __add__(self, other) -> float:  # type: ignore[no-untyped-def]
-        if type(self) is type(other):
+        if isinstance(other, type(self)):
             return super().__add__(other)
         raise TypeError
 
@@ -186,7 +197,7 @@ class LawnGrass(Product):
         self.color = color
 
     def __add__(self, other) -> float:  # type: ignore[no-untyped-def]
-        if type(self) is type(other):
+        if isinstance(other, type(self)):
             return super().__add__(other)
         raise TypeError
 
@@ -250,3 +261,28 @@ class Category:
 
         elif self.name != name and product in self.__products:
             self.__products.remove(product)
+
+    def middle_price(self) -> int | float:
+        """Определяет средний ценник всех товаров"""
+        try:
+            for product in self.__products:
+                if not product or not product.price and not product.quantity:
+                    print("Не указана цена товара или товар отсутствует")
+                    return 0
+                elif not isinstance(product.price, (float, int)):
+                    print(
+                        "Переданы неправильные типы данных в инфо поля о товаре, "
+                        "например, строка вместо числа для цены или количества"
+                    )
+                    return 0
+                elif product.price <= 0:
+                    print("Цена или количество товара равно или меньше нуля")
+                    return 0
+
+            total_price = sum(product.price for product in self.__products)
+            avg_price_tag = round(total_price / self.product_count, 2)
+            return avg_price_tag  # type: ignore[no-any-return]
+
+        except ZeroDivisionError:
+            print("Общая стоимость товаров равна нулю")
+            return 0
